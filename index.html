@@ -1,0 +1,657 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Runner Rehab Pro — PWA</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0b0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root { --bg:#0c0c0c; --card:#151515; --text:#eaeaea; --muted:#a0a0a0; --accent:#4ade80; --bad:#f87171; --line:#2a2a2a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:var(--text); background:linear-gradient(180deg,#0b0b0b 0%, #121212 100%); }
+  header { padding:16px 18px; position:sticky; top:0; background:rgba(18,18,18,0.9); backdrop-filter: blur(6px); border-bottom:1px solid var(--line); }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; }
+  .wrap { max-width:1000px; margin:0 auto; padding:18px; display:grid; grid-template-columns: 1.2fr 1fr; gap:18px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  label { font-size:12px; color:var(--muted); }
+  select, input[type="text"], input[type="number"], input[type="range"]{ width:100%; background:#0f0f0f; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:8px; }
+  .chk { display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--line); border-radius:12px; background:#101010; }
+  .chk input[type="checkbox"]{ width:18px; height:18px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#0e1a12; color:#9be7b0; border:1px solid #1f3b2b; font-size:12px; }
+  .title { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .muted { color:var(--muted); font-size:12px; }
+  .btns { display:flex; gap:8px; flex-wrap: wrap; }
+  button { background:#161616; color:var(--text); border:1px solid var(--line); padding:8px 10px; border-radius:10px; font-weight:600; cursor:pointer; }
+  button.accent { border-color:#2b5a3d; background:#0e1a12; color:#c6f6d5; }
+  .svgWrap { width:100%; height:220px; border:1px solid var(--line); background:#0f0f0f; border-radius:12px; display:flex; align-items:center; justify-content:center; }
+  .hint { font-size:12px; color:var(--muted); margin-top:8px; }
+  .grid { display:grid; gap:10px; }
+  .section { margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); }
+  .install { background:#0e1a12; border:1px solid #1f3b2b; color:#c6f6d5; border-radius:12px; padding:10px; font-size:13px; display:none; }
+  .demoBtn { margin-left:auto; }
+  .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); }
+  .modal .inner { background:#111; border:1px solid var(--line); border-radius:14px; width:min(680px, 94vw); padding:14px; }
+  .modal header { position:relative; border:none; background:none; padding:6px 6px 10px; }
+  .modal h3 { margin:0; font-size:16px; }
+  .modal .content { background:#0f0f0f; border:1px solid var(--line); border-radius:12px; padding:10px; }
+  .close { position:absolute; right:8px; top:6px; background:#171717; border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Runner Rehab Pro — PWA</h1>
+  <div class="sub">Install to Home Screen for an app-like experience. Offline. Preloaded with your routine + demo animations.</div>
+</header>
+
+<div class="wrap">
+  <section class="card">
+    <div class="title">
+      <h2>Today</h2>
+      <div id="todayPill" class="pill">—</div>
+    </div>
+    <div class="row">
+      <div class="muted">Your routine below is preloaded. Check off what you complete. Tap “Save”.</div>
+      <div class="muted" style="text-align:right">Pain today: <span id="painVal">0</span>/10</div>
+    </div>
+
+    <div class="section grid" id="form"></div>
+
+    <div class="section">
+      <label for="pain">Pain (0–10)</label>
+      <input id="pain" type="range" min="0" max="10" step="1" value="0" />
+      <div class="hint">If pain ≥ 5 after Strength, reduce volume next time.</div>
+    </div>
+
+    <div class="btns section">
+      <button class="accent" id="saveBtn">Save</button>
+      <button id="resetBtn">Reset Today</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="title"><h2>This Week — Adherence</h2></div>
+    <div class="svgWrap">
+      <svg id="chart" width="100%" height="220" viewBox="0 0 340 220" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Weekly adherence chart"></svg>
+    </div>
+    <div class="hint">Targets — Mobility: 6–7/wk • Activation: 3+/wk • Strength: 2–3/wk • Core: 2/wk</div>
+  </section>
+</div>
+
+<div class="modal" id="demoModal" aria-hidden="true" role="dialog">
+  <div class="inner">
+    <header>
+      <h3 id="demoTitle">Exercise Demo</h3>
+      <button class="close" id="closeModal">Close</button>
+    </header>
+    <div class="content" id="demoContent"></div>
+  </div>
+</div>
+
+<script>
+if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt", (e)=>{ e.preventDefault(); deferredPrompt=e; document.getElementById("installCard")?.style.display="block"; });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+if (isIOS) { document.getElementById("installCard")?.style.display = "block"; }
+
+
+const SVG_DEMOS = {
+  "Ankle Rocks (kneeling)": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Ankle rocks">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="140" y="80" width="40" height="60" rx="6" fill="#9be7b0"/>
+      <rect x="160" y="120" width="10" height="20" rx="3" fill="#c3f5d7">
+        <animate attributeName="y" values="120;110;120" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="150" y="135" width="30" height="6" rx="3" fill="#8fd6b5">
+        <animate attributeName="y" values="135;125;135" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Knee over toes; heel stays down</text>
+    </svg>
+  `,
+  "Calf Stretch - straight leg": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Calf stretch straight leg">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="210" y="80" width="10" height="60" rx="3" fill="#9be7b0"/>
+      <rect x="195" y="135" width="40" height="6" rx="3" fill="#c3f5d7"/>
+      <rect x="140" y="105" width="30" height="6" rx="3" fill="#8fd6b5">
+        <animate attributeName="x" values="140;145;140" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Straight knee targets gastrocnemius</text>
+    </svg>
+  `,
+  "Calf Stretch - bent knee": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Calf stretch bent knee">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="210" y="90" width="10" height="50" rx="3" fill="#9be7b0">
+        <animate attributeName="y" values="90;95;90" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="195" y="135" width="40" height="6" rx="3" fill="#c3f5d7"/>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Soft knee to bias soleus</text>
+    </svg>
+  `,
+  "Foam Roll Calves": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Foam roll calves">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="90" y="110" width="140" height="10" rx="5" fill="#9be7b0"/>
+      <rect x="140" y="120" width="40" height="10" rx="5" fill="#8fd6b5">
+        <animate attributeName="x" values="120;180;120" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Slow roll; pause on tender spots</text>
+    </svg>
+  `,
+  "90/90 Hip Stretch": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="90/90 stretch">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="120" y="100" width="30" height="10" rx="4" fill="#9be7b0"/>
+      <rect x="150" y="100" width="30" height="10" rx="4" fill="#c3f5d7" transform-origin="150 100">
+        <animateTransform attributeName="transform" type="rotate" values="0;20;0" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="120" y="110" width="30" height="10" rx="4" fill="#8fd6b5" transform-origin="120 110">
+        <animateTransform attributeName="transform" type="rotate" values="0;-20;0" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Rotate from hips, keep spine neutral</text>
+    </svg>
+  `,
+  "Hip Flexor Stretch + Glute Squeeze": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Hip flexor stretch">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="80" y="110" width="60" height="10" rx="5" fill="#9be7b0"/>
+      <rect x="140" y="110" width="60" height="10" rx="5" fill="#c3f5d7">
+        <animate attributeName="x" values="140;145;140" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <circle cx="110" cy="100" r="6" fill="#bdebd2">
+        <animate attributeName="r" values="6;7;6" dur="1.8s" repeatCount="indefinite"/>
+      </circle>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Posterior tilt + glute squeeze</text>
+    </svg>
+  `,
+  "Figure-4 Stretch": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Figure-4 stretch">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="80" y="110" width="100" height="10" rx="5" fill="#9be7b0"/>
+      <rect x="140" y="100" width="50" height="10" rx="5" fill="#c3f5d7" transform-origin="140 110">
+        <animateTransform attributeName="transform" type="rotate" values="0;-25;0" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Keep spine long; pull gently</text>
+    </svg>
+  `,
+  "Seated Hamstring Stretch": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Seated hamstring stretch">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="60" y="110" width="80" height="10" rx="5" fill="#9be7b0"/>
+      <rect x="120" y="110" width="60" height="8" rx="4" fill="#c3f5d7"/>
+      <circle cx="70" cy="100" r="6" fill="#bdebd2">
+        <animate attributeName="cx" values="70;73;70" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Hinge from hips; back neutral</text>
+    </svg>
+  `,
+  "Standing Quad Stretch": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Standing quad stretch">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="150" y="90" width="10" height="50" rx="4" fill="#9be7b0"/>
+      <rect x="140" y="135" width="30" height="6" rx="3" fill="#c3f5d7"/>
+      <rect x="150" y="90" width="40" height="6" rx="3" fill="#8fd6b5" transform-origin="150 90">
+        <animateTransform attributeName="transform" type="rotate" values="0;-30;0" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Knees together; gentle pull</text>
+    </svg>
+  `,
+  "Glute Bridge (mini band)": `
+    <svg viewBox="0 0 300 160" width="100%" height="160" role="img" aria-label="Glute bridge demo">
+      <rect x="0" y="140" width="300" height="6" fill="#2a2a2a"/>
+      <rect id="torso" x="40" y="110" width="120" height="10" rx="5" fill="#9be7b0">
+        <animate attributeName="y" values="110;95;110" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect id="thighs" x="150" y="110" width="60" height="10" rx="5" fill="#c3f5d7">
+        <animate attributeName="y" values="110;95;110" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="x" values="150;160;150" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect id="shins" x="205" y="110" width="10" height="35" rx="3" fill="#8fd6b5">
+        <animate attributeName="y" values="110;90;110" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <circle cx="30" cy="110" r="8" fill="#bdebd2">
+        <animate attributeName="cy" values="110;95;110" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Glute squeeze at top, neutral ribs</text>
+    </svg>
+  `,
+  "Clamshells": `
+    <svg viewBox="0 0 300 160" width="100%" height="160" role="img" aria-label="Clamshell demo">
+      <rect x="0" y="140" width="300" height="6" fill="#2a2a2a"/>
+      <rect x="60" y="100" width="100" height="10" rx="5" fill="#9be7b0"/>
+      <rect x="120" y="100" width="40" height="10" rx="5" fill="#c3f5d7"/>
+      <rect x="140" y="110" width="50" height="8" rx="4" fill="#8fd6b5"/>
+      <rect id="topLeg" x="140" y="110" width="50" height="8" rx="4" fill="#bdebd2" transform-origin="140 110">
+        <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0; -25; 0" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Keep hips stacked, open from hip</text>
+    </svg>
+  `,
+  "Banded Lateral Walks": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Lateral walks">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect id="leg1" x="120" y="110" width="14" height="30" rx="4" fill="#9be7b0">
+        <animate attributeName="x" values="120;140;120" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect id="leg2" x="150" y="110" width="14" height="30" rx="4" fill="#c3f5d7">
+        <animate attributeName="x" values="150;170;150" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="120" y="136" width="44" height="4" rx="2" fill="#8fd6b5"/>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Small steps; band tension constant</text>
+    </svg>
+  `,
+  "Bird Dog": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Bird dog">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="120" y="110" width="60" height="10" rx="5" fill="#9be7b0"/>
+      <rect x="90" y="110" width="30" height="8" rx="4" fill="#c3f5d7">
+        <animate attributeName="x" values="90;80;90" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="180" y="110" width="30" height="8" rx="4" fill="#8fd6b5">
+        <animate attributeName="x" values="180;190;180" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Opposite arm/leg; keep hips level</text>
+    </svg>
+  `,
+  "Single-Leg Glute Bridge": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Single-leg bridge">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="60" y="110" width="120" height="10" rx="5" fill="#9be7b0">
+        <animate attributeName="y" values="110;95;110" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="170" y="90" width="10" height="30" rx="4" fill="#c3f5d7">
+        <animate attributeName="y" values="90;80;90" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Keep pelvis level; slow tempo</text>
+    </svg>
+  `,
+  "Step-Ups onto Box": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Step-ups">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="110" y="120" width="40" height="20" rx="2" fill="#2a2a2a"/>
+      <rect x="120" y="90" width="10" height="50" rx="3" fill="#9be7b0">
+        <animate attributeName="y" values="90;70;90" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="112" y="135" width="30" height="5" rx="2" fill="#c3f5d7">
+        <animate attributeName="y" values="135;115;135" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Drive through heel; control down</text>
+    </svg>
+  `,
+  "Bulgarian Split Squats": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Bulgarian split squat">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="220" y="120" width="40" height="12" rx="2" fill="#2a2a2a"/>
+      <rect x="140" y="90" width="12" height="50" rx="4" fill="#9be7b0">
+        <animate attributeName="y" values="90;105;90" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="145" y="110" width="30" height="6" rx="3" fill="#c3f5d7">
+        <animate attributeName="y" values="110;125;110" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Front knee tracks over toes; torso tall</text>
+    </svg>
+  `,
+  "Romanian Deadlifts": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="RDL">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="150" y="90" width="12" height="50" rx="3" fill="#9be7b0">
+        <animate attributeName="y" values="90;100;90" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="130" y="110" width="60" height="6" rx="3" fill="#c3f5d7">
+        <animate attributeName="y" values="110;120;110" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Hip hinge; shins vertical; back flat</text>
+    </svg>
+  `,
+  "Seated Calf Raises": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Seated calf raise">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="80" y="100" width="60" height="10" rx="4" fill="#9be7b0"/>
+      <rect x="110" y="110" width="12" height="25" rx="4" fill="#c3f5d7">
+        <animate attributeName="y" values="110;95;110" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="100" y="135" width="34" height="5" rx="2" fill="#8fd6b5">
+        <animate attributeName="y" values="135;120;135" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Pause at top; slow eccentric</text>
+    </svg>
+  `,
+  "Standing Calf Raises": `
+    <svg viewBox="0 0 300 160" width="100%" height="160" role="img" aria-label="Calf raise demo">
+      <rect x="0" y="140" width="300" height="6" fill="#2a2a2a"/>
+      <rect id="foot" x="120" y="135" width="60" height="8" rx="3" fill="#9be7b0">
+        <animate attributeName="y" values="135;120;135" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <rect id="shin" x="145" y="110" width="10" height="25" rx="4" fill="#c3f5d7">
+        <animate attributeName="y" values="110;95;110" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="135" y="90" width="30" height="10" rx="4" fill="#8fd6b5"/>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Rise up slow; pause; lower under control</text>
+    </svg>
+  `,
+  "Wall Sit + Glute Squeeze": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Wall sit">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="60" y="90" width="12" height="50" rx="4" fill="#9be7b0"/>
+      <rect x="72" y="120" width="35" height="6" rx="3" fill="#c3f5d7"/>
+      <rect x="40" y="70" width="6" height="70" fill="#2a2a2a"/>
+      <circle cx="78" cy="100" r="6" fill="#bdebd2">
+        <animate attributeName="r" values="6;8;6" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Back to wall; constant tension</text>
+    </svg>
+  `,
+  "Side Plank": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Side plank">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="80" y="110" width="80" height="8" rx="4" fill="#9be7b0">
+        <animate attributeName="y" values="110;108;110" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="160" y="110" width="20" height="8" rx="4" fill="#c3f5d7"/>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Stack shoulders/hips; hold steady</text>
+    </svg>
+  `,
+  "Pallof Press": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Pallof press">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="140" y="100" width="12" height="40" rx="4" fill="#9be7b0"/>
+      <rect x="152" y="110" width="40" height="8" rx="4" fill="#c3f5d7">
+        <animate attributeName="x" values="152;170;152" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <line x1="120" y1="114" x2="140" y2="114" stroke="#8fd6b5" stroke-width="3"/>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Press straight out; resist rotation</text>
+    </svg>
+  `,
+  "Single-Leg Balance Hold": `
+    <svg viewBox="0 0 320 160" width="100%" height="160" role="img" aria-label="Single-leg balance">
+      <rect x="0" y="140" width="320" height="6" fill="#2a2a2a"/>
+      <rect x="150" y="90" width="10" height="50" rx="4" fill="#9be7b0">
+        <animate attributeName="x" values="150;148;150" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="145" y="135" width="20" height="6" rx="3" fill="#c3f5d7"/>
+      <text x="10" y="20" fill="#a0a0a0" font-size="12">Foot tripod; knee soft; steady</text>
+    </svg>
+  `
+};
+
+
+const PRELOADED = {
+  "Mobility": [
+    {ex:"Ankle Rocks (kneeling)", dur: 2},
+    {ex:"Calf Stretch - straight leg", dur: 1},
+    {ex:"Calf Stretch - bent knee", dur: 1},
+    {ex:"90/90 Hip Stretch", dur: 1},
+    {ex:"Hip Flexor Stretch + Glute Squeeze", dur: 1}
+  ],
+  "Activation": [
+    {ex:"Glute Bridge (mini band)", sets:2, reps:12},
+    {ex:"Clamshells", sets:2, reps:15},
+    {ex:"Banded Lateral Walks", sets:2, reps:15}
+  ],
+  "Strength": [
+    {ex:"Step-Ups onto Box", sets:3, reps:10},
+    {ex:"Bulgarian Split Squats", sets:3, reps:8},
+    {ex:"Romanian Deadlifts", sets:3, reps:10},
+    {ex:"Seated Calf Raises", sets:3, reps:15},
+    {ex:"Standing Calf Raises", sets:3, reps:12}
+  ],
+  "Core/Stability": [
+    {ex:"Side Plank", dur: 1},
+    {ex:"Pallof Press", sets:2, reps:12},
+    {ex:"Single-Leg Balance Hold", dur: 1}
+  ]
+};
+
+const MEDIA = {
+  "Ankle Rocks (kneeling)": {type:"svg", id:"Ankle Rocks (kneeling)"},
+  "Calf Stretch - straight leg": {type:"svg", id:"Calf Stretch - straight leg"},
+  "Calf Stretch - bent knee": {type:"svg", id:"Calf Stretch - bent knee"},
+  "Foam Roll Calves": {type:"svg", id:"Foam Roll Calves"},
+  "90/90 Hip Stretch": {type:"svg", id:"90/90 Hip Stretch"},
+  "Hip Flexor Stretch + Glute Squeeze": {type:"svg", id:"Hip Flexor Stretch + Glute Squeeze"},
+  "Figure-4 Stretch": {type:"svg", id:"Figure-4 Stretch"},
+  "Seated Hamstring Stretch": {type:"svg", id:"Seated Hamstring Stretch"},
+  "Standing Quad Stretch": {type:"svg", id:"Standing Quad Stretch"},
+  "Glute Bridge (mini band)": {type:"svg", id:"Glute Bridge (mini band)"},
+  "Clamshells": {type:"svg", id:"Clamshells"},
+  "Banded Lateral Walks": {type:"svg", id:"Banded Lateral Walks"},
+  "Bird Dog": {type:"svg", id:"Bird Dog"},
+  "Single-Leg Glute Bridge": {type:"svg", id:"Single-Leg Glute Bridge"},
+  "Step-Ups onto Box": {type:"svg", id:"Step-Ups onto Box"},
+  "Bulgarian Split Squats": {type:"svg", id:"Bulgarian Split Squats"},
+  "Romanian Deadlifts": {type:"svg", id:"Romanian Deadlifts"},
+  "Seated Calf Raises": {type:"svg", id:"Seated Calf Raises"},
+  "Standing Calf Raises": {type:"svg", id:"Standing Calf Raises"},
+  "Wall Sit + Glute Squeeze": {type:"svg", id:"Wall Sit + Glute Squeeze"},
+  "Side Plank": {type:"svg", id:"Side Plank"},
+  "Pallof Press": {type:"svg", id:"Pallof Press"},
+  "Single-Leg Balance Hold": {type:"svg", id:"Single-Leg Balance Hold"}
+};
+
+
+const EXERCISES = {
+  "Mobility": ["Ankle Rocks (kneeling)","Calf Stretch - straight leg","Calf Stretch - bent knee","Foam Roll Calves","90/90 Hip Stretch","Hip Flexor Stretch + Glute Squeeze","Figure-4 Stretch","Seated Hamstring Stretch","Standing Quad Stretch"],
+  "Activation": ["Glute Bridge (mini band)","Clamshells","Banded Lateral Walks","Bird Dog","Single-Leg Glute Bridge"],
+  "Strength": ["Step-Ups onto Box","Bulgarian Split Squats","Romanian Deadlifts","Seated Calf Raises","Standing Calf Raises","Wall Sit + Glute Squeeze"],
+  "Core/Stability": ["Side Plank","Pallof Press","Single-Leg Balance Hold"]
+};
+
+const CATS = Object.keys(EXERCISES);
+const todayStr = new Date().toISOString().slice(0,10);
+const LS_KEY = "runnerRehabPRO_v1";
+
+function loadState() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e) { return {}; } }
+function saveState(state) { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+function ensureToday(state) {
+  if(!state[todayStr]) state[todayStr] = { pain:0, data:{} };
+  if(Object.keys(state[todayStr].data).length === 0) {
+    CATS.forEach(cat => {
+      const arr = PRELOADED[cat] || [];
+      state[todayStr].data[cat] = arr.map(item => ({ ex:item.ex, sets:item.sets||"", reps:item.reps||"", dur:item.dur||"", done:false }));
+    });
+  }
+  return state[todayStr];
+}
+
+function renderForm(day) {
+  const elForm = document.getElementById("form");
+  elForm.innerHTML = "";
+  CATS.forEach(cat => {
+    const items = day.data[cat] || [];
+    const catWrap = document.createElement("div");
+    catWrap.className = "grid";
+    const head = document.createElement("div");
+    head.className = "chk";
+    head.innerHTML = `<strong style="flex:1">${cat}</strong><span class="muted">Tap demo ▶ on any exercise</span>`;
+    catWrap.appendChild(head);
+
+    items.forEach((it, idx) => {
+      const row = document.createElement("div");
+      row.className = "grid";
+      const baseId = (s)=> s.replace(/\W/g,"_");
+      const srId = baseId(`sr_${cat}_${idx}`);
+      const durId = baseId(`dur_${cat}_${idx}`);
+      const chkId = baseId(`chk_${cat}_${idx}`);
+      const demoBtnId = baseId(`demo_${cat}_${idx}`);
+
+      row.innerHTML = `
+        <div class="chk">
+          <input id="${chkId}" type="checkbox" ${it.done ? "checked":""}/>
+          <strong style="flex:1">${it.ex}</strong>
+          <button class="demoBtn" id="${demoBtnId}">Demo ▶</button>
+        </div>
+        <div class="row">
+          <div>
+            <label>Sets x Reps</label>
+            <input id="${srId}" type="text" placeholder="e.g., 3 x 10" value="${(it.sets && it.reps) ? (it.sets + " x " + it.reps) : ""}"/>
+          </div>
+          <div>
+            <label>Duration (min)</label>
+            <input id="${durId}" type="number" min="0" step="1" value="${it.dur || ""}"/>
+          </div>
+        </div>
+      `;
+      catWrap.appendChild(row);
+
+      setTimeout(() => {
+        document.getElementById(demoBtnId).addEventListener("click", ()=> showDemo(it.ex));
+      }, 0);
+    });
+
+    elForm.appendChild(catWrap);
+  });
+}
+
+function showDemo(exName) {
+  const modal = document.getElementById("demoModal");
+  const title = document.getElementById("demoTitle");
+  const content = document.getElementById("demoContent");
+  title.textContent = exName + " — Demo";
+  content.innerHTML = "";
+  const spec = MEDIA[exName];
+
+  if (spec && spec.type === "video") {
+    const v = document.createElement("video");
+    v.controls = true;
+    v.autoplay = true;
+    v.src = spec.src;
+    v.style.width = "100%";
+    content.appendChild(v);
+  } else if (spec && spec.type === "svg" && SVG_DEMOS[spec.id]) {
+    content.innerHTML = SVG_DEMOS[spec.id];
+  } else {
+    content.innerHTML = `<div class="muted">No demo yet. Add one by editing MEDIA in index.html.</div>`;
+  }
+  modal.style.display = "flex";
+}
+
+function renderChart(state) {
+  const elChart = document.getElementById("chart");
+  const dates = [];
+  for(let i=6;i>=0;i--) { const d=new Date(); d.setDate(d.getDate()-i); dates.push(d.toISOString().slice(0,10)); }
+  const sums = { "Mobility":0, "Activation":0, "Strength":0, "Core/Stability":0 };
+  const counts = { "Mobility":0, "Activation":0, "Strength":0, "Core/Stability":0 };
+
+  dates.forEach(d => {
+    const day = state[d];
+    if(!day) return;
+    Object.keys(sums).forEach(cat => {
+      const items = (day.data && day.data[cat]) || [];
+      if(items.length) counts[cat]++;
+      const anyDone = items.some(x=>x.done);
+      if(anyDone) sums[cat]++;
+    });
+  });
+
+  const cats = Object.keys(sums);
+  const perc = cats.map(cat => counts[cat] ? Math.round((sums[cat]/counts[cat])*100) : 0);
+
+  const w = 320, h = 190, left = 90, top = 20, barH = 26, gap = 16;
+  elChart.innerHTML = "";
+  const title = document.createElementNS("http://www.w3.org/2000/svg","text");
+  title.setAttribute("x", 10); title.setAttribute("y", 14);
+  title.setAttribute("fill", "#a0a0a0"); title.setAttribute("font-size","12");
+  title.textContent = "Last 7 Days — % days with any exercise done per category";
+  elChart.appendChild(title);
+
+  cats.forEach((cat, i) => {
+    const y = top + i*(barH+gap);
+    const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+    label.setAttribute("x", 10); label.setAttribute("y", y+barH-8);
+    label.setAttribute("fill", "#cfcfcf"); label.setAttribute("font-size","12");
+    label.textContent = cat;
+    elChart.appendChild(label);
+
+    const bg = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    bg.setAttribute("x", left); bg.setAttribute("y", y);
+    bg.setAttribute("width", w-left-20); bg.setAttribute("height", barH);
+    bg.setAttribute("rx","6"); bg.setAttribute("fill", "#1b1b1b"); bg.setAttribute("stroke","#2a2a2a");
+    elChart.appendChild(bg);
+
+    const val = perc[i];
+    const fg = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    fg.setAttribute("x", left); fg.setAttribute("y", y);
+    fg.setAttribute("width", Math.max(0,(w-left-20) * (val/100)));
+    fg.setAttribute("height", barH); fg.setAttribute("rx","6"); fg.setAttribute("fill", "#4ade80");
+    elChart.appendChild(fg);
+
+    const pct = document.createElementNS("http://www.w3.org/2000/svg","text");
+    pct.setAttribute("x", w-40); pct.setAttribute("y", y+barH-8);
+    pct.setAttribute("fill", "#9be7b0"); pct.setAttribute("font-size","12");
+    pct.setAttribute("text-anchor","end");
+    pct.textContent = val + "%";
+    elChart.appendChild(pct);
+  });
+}
+
+function saveToday() {
+  const state = loadState();
+  const day = ensureToday(state);
+  day.pain = parseInt(document.getElementById("pain").value,10)||0;
+
+  CATS.forEach(cat => {
+    const items = day.data[cat] || [];
+    items.forEach((it, idx) => {
+      const base = (s) => s.replace(/\W/g,"_");
+      const chk = document.getElementById(base(`chk_${cat}_${idx}`));
+      const sr  = document.getElementById(base(`sr_${cat}_${idx}`));
+      const dur = document.getElementById(base(`dur_${cat}_${idx}`));
+      it.done = !!(chk && chk.checked);
+      const srVal = (sr && sr.value || "").toLowerCase();
+      if (srVal.includes("x")) {
+        const [s,r] = srVal.split("x").map(x=>x.trim());
+        it.sets = s || ""; it.reps = r || "";
+      } else {
+        it.sets = ""; it.reps = "";
+      }
+      it.dur = (dur && dur.value) || "";
+    });
+  });
+
+  state[todayStr] = day;
+  saveState(state);
+  flashSaved();
+  renderChart(state);
+}
+
+function init() {
+  const state = loadState();
+  const day = ensureToday(state);
+
+  document.getElementById("todayPill").textContent = new Date().toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+  const pain = document.getElementById("pain");
+  pain.value = day.pain || 0;
+  document.getElementById("painVal").textContent = pain.value;
+  pain.addEventListener("input", () => document.getElementById("painVal").textContent = pain.value);
+
+  renderForm(day);
+  renderChart(state);
+
+  document.getElementById("saveBtn").addEventListener("click", saveToday);
+  document.getElementById("resetBtn").addEventListener("click", () => { const s=loadState(); delete s[todayStr]; saveState(s); location.reload(); });
+  document.getElementById("closeModal").addEventListener("click", ()=> document.getElementById("demoModal").style.display = "none");
+  document.getElementById("demoModal").addEventListener("click", (e)=>{ if(e.target.id==='demoModal') e.currentTarget.style.display='none'; });
+}
+
+function flashSaved(){
+  const btn = document.getElementById("saveBtn");
+  const txt = btn.textContent;
+  btn.textContent = "Saved ✓";
+  setTimeout(()=> btn.textContent = txt, 900);
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
