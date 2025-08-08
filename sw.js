@@ -1,9 +1,9 @@
 
-const CACHE_NAME = "runner-rehab-pro-v1";
+const CACHE_NAME = "runner-rehab-full-v1-2";
 const ASSETS = [
   "./",
   "./index.html",
-  "./manifest.webmanifest",
+  "./manifest.v1-2.webmanifest",
   "./sw.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
